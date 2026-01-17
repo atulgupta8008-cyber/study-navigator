@@ -1,17 +1,14 @@
-# ---------- Python ----------
+# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 .env
 venv/
 study_navigator.db
 
-# ---------- Node / Next ----------
+# Node
 node_modules/
 .next/
-out/
 
-# ---------- OS ----------
+# OS
 .DS_Store
 Thumbs.db
