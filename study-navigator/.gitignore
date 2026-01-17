@@ -1,0 +1,17 @@
+# ---------- Python ----------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+study_navigator.db
+
+# ---------- Node / Next ----------
+node_modules/
+.next/
+out/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
