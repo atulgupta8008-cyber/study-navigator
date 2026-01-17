@@ -1,9 +1,16 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 🔽 ADD THESE IMPORTS
 from app.db import Base, engine
 from app.models import student
+
+from app.routes import explain
+
 
 # 🔽 CREATE TABLES HERE (THIS IS THE LINE YOU ASKED ABOUT)
 Base.metadata.create_all(bind=engine)
@@ -27,6 +34,8 @@ app.add_middleware(
 app.include_router(survey.router)
 app.include_router(timetable.router)
 app.include_router(roadmap.router)
+app.include_router(explain.router)
+
 
 @app.get("/")
 def root():
