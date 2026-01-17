@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { generateRoadmap } from "@/lib/api";
+import { generateRoadmap, explainChapter } from "@/lib/api";
 
 import {
   levelOptions,
@@ -28,6 +28,10 @@ export default function Dashboard() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // 🔹 NEW STATES FOR AI EXPLAIN
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explainingChapter, setExplainingChapter] = useState<string | null>(null);
 
   async function handleGenerate() {
     try {
@@ -60,11 +64,27 @@ export default function Dashboard() {
 
       const result = await generateRoadmap(payload);
       setData(result);
+      setExplanation(null);
     } catch (err) {
       console.error(err);
       alert("Failed to generate roadmap");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // 🔹 AI EXPLAIN HANDLER
+  async function handleExplain(chapter: string, level: string) {
+    try {
+      setExplainingChapter(chapter);
+      setExplanation(null);
+
+      const res = await explainChapter(chapter, level);
+      setExplanation(res.explanation || "No explanation generated.");
+    } catch (err) {
+      setExplanation("Failed to load explanation.");
+    } finally {
+      setExplainingChapter(null);
     }
   }
 
@@ -114,13 +134,38 @@ export default function Dashboard() {
               {/* ROADMAP */}
               <div className="bg-gray-900 rounded-xl p-6">
                 <h2 className="text-2xl font-semibold mb-4">📌 Chapter Priority</h2>
+
                 {data.result.roadmap.map((c: any) => (
-                  <div key={c.chapter} className="flex justify-between bg-black border border-gray-700 p-3 rounded mb-2">
-                    <span>{c.chapter}</span>
-                    <span className="text-blue-400">{c.priority_label}</span>
+                  <div
+                    key={c.chapter}
+                    className="bg-black border border-gray-700 p-3 rounded mb-3"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{c.chapter}</span>
+                      <span className="text-blue-400">{c.priority_label}</span>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        handleExplain(c.chapter, c.student_level ?? "weak")
+                      }
+                      className="mt-2 text-sm text-blue-300 hover:underline"
+                    >
+                      {explainingChapter === c.chapter
+                        ? "Explaining..."
+                        : "Explain this chapter"}
+                    </button>
                   </div>
                 ))}
               </div>
+
+              {/* 🔹 AI EXPLANATION */}
+              {explanation && (
+                <div className="bg-gray-900 rounded-xl p-6 whitespace-pre-wrap">
+                  <h2 className="text-xl font-semibold mb-3">🧠 AI Explanation</h2>
+                  <p className="text-gray-300">{explanation}</p>
+                </div>
+              )}
 
               {/* DAILY PLAN */}
               <div className="bg-gray-900 rounded-xl p-6">
@@ -131,24 +176,6 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-
-              {/* ANALYTICS */}
-              {data.result.analytics && (
-                <div className="bg-gray-900 rounded-xl p-6">
-                  <h2 className="text-2xl font-semibold mb-4">📊 Insights</h2>
-
-                  <p className="text-gray-300 mb-4">
-                    {data.result.analytics.suggestion}
-                  </p>
-
-                  <h3 className="font-semibold mb-2">🔥 Weakest Areas</h3>
-                  {data.result.analytics.weak_chapters.map((c: any) => (
-                    <div key={c.chapter} className="bg-black border border-gray-700 p-2 rounded mb-1">
-                      {c.chapter} ({c.priority_label})
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
