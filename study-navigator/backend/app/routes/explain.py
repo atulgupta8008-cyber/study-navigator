@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from app.services.ai_engine import explain_chapter
 
-router = APIRouter(prefix="/explain", tags=["AI"])
+router = APIRouter(prefix="/explain", tags=["Explain"])
 
 class ExplainRequest(BaseModel):
     chapter: str

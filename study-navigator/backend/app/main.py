@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # 🔽 ADD THESE IMPORTS
 from app.db import Base, engine
-from app.models import student
+from app.models import student, explanation
 
 from app.routes import explain
 
