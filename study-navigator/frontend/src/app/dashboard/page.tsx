@@ -29,10 +29,13 @@ export default function Dashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 NEW STATES FOR AI EXPLAIN
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [explainingChapter, setExplainingChapter] = useState<string | null>(null);
+  // 🔹 MODAL STATES
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalContent, setModalContent] = useState<string | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
+  // ---------------- GENERATE ROADMAP ----------------
   async function handleGenerate() {
     try {
       setLoading(true);
@@ -64,27 +67,33 @@ export default function Dashboard() {
 
       const result = await generateRoadmap(payload);
       setData(result);
-      setExplanation(null);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Failed to generate roadmap");
     } finally {
       setLoading(false);
     }
   }
 
-  // 🔹 AI EXPLAIN HANDLER
-  async function handleExplain(chapter: string, level: string) {
+  // ---------------- AI EXPLAIN ----------------
+  async function handleExplain(chapter: string) {
+    setShowModal(true);
+    setModalTitle(chapter);
+    setModalContent(null);
+    setModalLoading(true);
+
     try {
-      setExplainingChapter(chapter);
-      setExplanation(null);
+      const level =
+        physicsStatus[chapter] ||
+        mathsStatus[chapter] ||
+        chemStatus[chapter] ||
+        "weak";
 
       const res = await explainChapter(chapter, level);
-      setExplanation(res.explanation || "No explanation generated.");
-    } catch (err) {
-      setExplanation("Failed to load explanation.");
+      setModalContent(res.explanation || "No explanation generated.");
+    } catch {
+      setModalContent("Failed to load explanation.");
     } finally {
-      setExplainingChapter(null);
+      setModalLoading(false);
     }
   }
 
@@ -128,61 +137,86 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* ================= OUTPUT ================= */}
+          {/* ================= ROADMAP ================= */}
           {data && data.result && (
-            <div className="space-y-6">
-              {/* ROADMAP */}
-              <div className="bg-gray-900 rounded-xl p-6">
-                <h2 className="text-2xl font-semibold mb-4">📌 Chapter Priority</h2>
+            <div className="bg-gray-900 rounded-xl p-6">
+              <h2 className="text-2xl font-semibold mb-4">📌 Chapter Priority</h2>
 
-                {data.result.roadmap.map((c: any) => (
-                  <div
-                    key={c.chapter}
-                    className="bg-black border border-gray-700 p-3 rounded mb-3"
+              {data.result.roadmap.map((c: any) => (
+                <div key={c.chapter} className="bg-black border border-gray-700 p-3 rounded mb-2">
+                  <div className="flex justify-between">
+                    <span>{c.chapter}</span>
+                    <span className="text-blue-400">{c.priority_label}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleExplain(c.chapter)}
+                    className="mt-2 text-sm text-blue-300 hover:underline"
                   >
-                    <div className="flex justify-between items-center">
-                      <span>{c.chapter}</span>
-                      <span className="text-blue-400">{c.priority_label}</span>
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        handleExplain(c.chapter, c.student_level ?? "weak")
-                      }
-                      className="mt-2 text-sm text-blue-300 hover:underline"
-                    >
-                      {explainingChapter === c.chapter
-                        ? "Explaining..."
-                        : "Explain this chapter"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* 🔹 AI EXPLANATION */}
-              {explanation && (
-                <div className="bg-gray-900 rounded-xl p-6 whitespace-pre-wrap">
-                  <h2 className="text-xl font-semibold mb-3">🧠 AI Explanation</h2>
-                  <p className="text-gray-300">{explanation}</p>
+                    Explain this chapter
+                  </button>
                 </div>
-              )}
-
-              {/* DAILY PLAN */}
-              <div className="bg-gray-900 rounded-xl p-6">
-                <h2 className="text-2xl font-semibold mb-4">⏰ Today’s Plan</h2>
-                {data.result.daily_plan.plan.map((b: any) => (
-                  <div key={b.block} className="bg-black border border-gray-700 p-3 rounded mb-2">
-                    Block {b.block}: {b.subject} ({b.duration_min} min)
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* ================= MODAL ================= */}
+      {showModal && (
+        <ExplanationModal
+          title={modalTitle}
+          loading={modalLoading}
+          content={modalContent}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </main>
   );
 }
+
+/* ---------------- MODAL COMPONENT ---------------- */
+
+function ExplanationModal({ title, content, loading, onClose }: any) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-gray-900 w-full max-w-3xl max-h-[85vh] rounded-xl p-6 relative flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center border-b border-gray-700 pb-3 mb-3">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl"
+          >
+            ✖
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto pr-2">
+          {loading && (
+            <p className="text-gray-400 animate-pulse">
+              Thinking like a JEE mentor…
+            </p>
+          )}
+
+          {!loading && content && (
+            <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
+              {content}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 /* ---------------- HELPERS ---------------- */
 
@@ -223,3 +257,7 @@ function ChapterBlock({ title, chapters, status, setStatus }: any) {
     </div>
   );
 }
+
+<h1 className="text-red-500 text-sm">
+  DEPLOY TEST – CLUTTER REMOVED v2
+</h1>
