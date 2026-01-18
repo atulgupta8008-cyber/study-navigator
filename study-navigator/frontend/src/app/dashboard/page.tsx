@@ -100,7 +100,7 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-10">
       <div className="max-w-6xl mx-auto space-y-10">
-        <h1 className="text-4xl font-bold tracking-tight">Study Navigator</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Study Navigators</h1>
         <p className="text-gray-400">Your personal AI mentor for JEE preparation</p>
 
         <div className="grid md:grid-cols-2 gap-6">
