@@ -162,12 +162,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-              {data?.result?.advice && (
-          <div className="bg-blue-950 border border-blue-700 p-4 rounded-xl">
-            <h3 className="font-semibold mb-2">🧭 Advisor</h3>
-            <p className="text-gray-200">{data.result.advice.message}</p>
-          </div>
-        )}
+              {/* ================= ADVISOR ================= */}
+                    {data?.result?.advice?.message && (
+                      <div className="max-w-6xl mx-auto mt-6 bg-blue-950 border border-blue-700 p-4 rounded-xl">
+                        <h3 className="font-semibold mb-2">🧭 Advisor</h3>
+                        <p className="text-gray-200 whitespace-pre-wrap">
+                          {data.result.advice.message}
+                        </p>
+                      </div>
+                    )}
+
 
 
       {/* ================= MODAL ================= */}
