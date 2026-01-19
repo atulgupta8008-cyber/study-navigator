@@ -9,16 +9,18 @@ class AdvisorRequest(BaseModel):
     student_level: str
     priority: str
     months_left: int
+    advice_type: str = "new"
 
 @router.post("/next-action")
 def next_action(req: AdvisorRequest):
-    advice = get_next_action(
+    advice_text = get_next_action(
         chapter=req.chapter,
         student_level=req.student_level,
         priority=req.priority,
-        months_left=req.months_left
+        months_left=req.months_left,
+        advice_type=req.advice_type
     )
 
     return {
-        "advice": advice
+        "message": advice_text
     }

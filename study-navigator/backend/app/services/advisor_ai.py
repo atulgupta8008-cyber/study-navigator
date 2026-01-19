@@ -12,24 +12,45 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-def get_next_action(chapter: str, student_level: str, priority: str, months_left: int):
-    prompt = f"""
+def build_prompt(chapter, student_level, priority, months_left, advice_type):
+    tone_map = {
+        "new": "Guide the student clearly.",
+        "followup": "Give sharper follow-up advice assuming basics are known.",
+        "warning": "Be strict. Student is wasting time. Correct them immediately."
+    }
+
+    return f"""
 You are a strict JEE mentor.
 
-Student status:
-- Chapter: {chapter}
-- Level: {student_level}
-- Priority: {priority}
-- Months left: {months_left}
+Chapter: {chapter}
+Level: {student_level}
+Priority: {priority}
+Months left: {months_left}
 
-Give ONLY actionable study advice.
+Mode: {advice_type}
+Instruction: {tone_map.get(advice_type, tone_map['new'])}
+
 Rules:
-- Max 5 bullet points
+- Max 5 bullets
 - No theory
 - No motivation
-- No explanation
-- Focus on efficiency & marks
+- Action only
 """
+
+def get_next_action(
+    chapter: str,
+    student_level: str,
+    priority: str,
+    months_left: int,
+    advice_type: str = "new"
+):
+    prompt = build_prompt(
+        chapter,
+        student_level,
+        priority,
+        months_left,
+        advice_type
+    )
 
     payload = {
         "model": "llama-3.1-8b-instant",
@@ -41,7 +62,12 @@ Rules:
         "max_tokens": 150
     }
 
-    response = requests.post(API_URL, headers=HEADERS, json=payload, timeout=30)
+    response = requests.post(
+        API_URL,
+        headers=HEADERS,
+        json=payload,
+        timeout=30
+    )
     response.raise_for_status()
 
     data = response.json()
