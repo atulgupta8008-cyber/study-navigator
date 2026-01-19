@@ -11,6 +11,9 @@ from app.models import student, explanation
 
 from app.routes import explain
 
+from app.routes import advisor
+
+
 
 # 🔽 CREATE TABLES HERE (THIS IS THE LINE YOU ASKED ABOUT)
 Base.metadata.create_all(bind=engine)
@@ -35,6 +38,7 @@ app.include_router(survey.router)
 app.include_router(timetable.router)
 app.include_router(roadmap.router)
 app.include_router(explain.router)
+app.include_router(advisor.router)
 
 
 @app.get("/")
