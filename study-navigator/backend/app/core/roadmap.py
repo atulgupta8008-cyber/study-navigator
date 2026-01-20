@@ -7,6 +7,7 @@ from app.services.advisor_ai import get_next_action
 def generate_roadmap(survey: dict, chapters: list, context: dict):
     roadmap = []
 
+    # ---------------- PRIORITY ENGINE ----------------
     for chapter in chapters:
         score = calculate_priority(chapter, context)
         label = classify_priority(score)
@@ -20,10 +21,7 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
 
     roadmap.sort(key=lambda x: x["priority_score"], reverse=True)
 
-    timetable = generate_daily_plan(survey)
-    analytics = generate_analytics(roadmap)
-
-    # 🧭 ADVISOR (based on highest priority chapter)
+    # ---------------- ADVISOR (AUTO) ----------------
     top = roadmap[0]
 
     advice_message = get_next_action(
@@ -33,11 +31,19 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
         months_left=context["months_left"]
     )
 
+    advice = {
+        "chapter": top["chapter"],
+        "priority": top["priority_label"],
+        "message": advice_message
+    }
+
+    # ---------------- PLANS & ANALYTICS ----------------
+    timetable = generate_daily_plan(survey)
+    analytics = generate_analytics(roadmap)
+
     return {
         "roadmap": roadmap,
         "daily_plan": timetable,
         "analytics": analytics,
-        "advice": {
-            "message": advice_message
-        }
+        "advice": advice
     }
