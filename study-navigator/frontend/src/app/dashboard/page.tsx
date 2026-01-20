@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { generateRoadmap, explainChapter } from "@/lib/api";
+import {
+  generateRoadmap,
+  explainChapter,
+  getAdvisorAction,
+  sendAdvisorFeedback,
+} from "@/lib/api";
 
 import {
   levelOptions,
   physicsChapters,
   mathsChapters,
-  chemistryChapters
+  chemistryChapters,
 } from "@/lib/chapters";
 
 export default function Dashboard() {
@@ -17,23 +22,30 @@ export default function Dashboard() {
   const [backlog, setBacklog] = useState("medium");
 
   const [physicsStatus, setPhysicsStatus] = useState(
-    Object.fromEntries(physicsChapters.map(ch => [ch, "not_started"]))
+    Object.fromEntries(physicsChapters.map((ch) => [ch, "not_started"]))
   );
   const [mathsStatus, setMathsStatus] = useState(
-    Object.fromEntries(mathsChapters.map(ch => [ch, "not_started"]))
+    Object.fromEntries(mathsChapters.map((ch) => [ch, "not_started"]))
   );
   const [chemStatus, setChemStatus] = useState(
-    Object.fromEntries(chemistryChapters.map(ch => [ch, "not_started"]))
+    Object.fromEntries(chemistryChapters.map((ch) => [ch, "not_started"]))
   );
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 MODAL STATES
+  // ---------------- EXPLAIN MODAL ----------------
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalContent, setModalContent] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // ---------------- ADVISOR MODAL ----------------
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [advisorTitle, setAdvisorTitle] = useState("");
+  const [advisorContent, setAdvisorContent] = useState<string | null>(null);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [advisorPriority, setAdvisorPriority] = useState("");
 
   // ---------------- GENERATE ROADMAP ----------------
   async function handleGenerate() {
@@ -46,15 +58,15 @@ export default function Dashboard() {
           burnout_level: burnout,
         },
         chapters: [
-          ...physicsChapters.map(ch => ({
+          ...physicsChapters.map((ch) => ({
             name: ch,
             student_level: physicsStatus[ch],
           })),
-          ...mathsChapters.map(ch => ({
+          ...mathsChapters.map((ch) => ({
             name: ch,
             student_level: mathsStatus[ch],
           })),
-          ...chemistryChapters.map(ch => ({
+          ...chemistryChapters.map((ch) => ({
             name: ch,
             student_level: chemStatus[ch],
           })),
@@ -74,7 +86,7 @@ export default function Dashboard() {
     }
   }
 
-  // ---------------- AI EXPLAIN ----------------
+  // ---------------- EXPLAIN ----------------
   async function handleExplain(chapter: string) {
     setShowModal(true);
     setModalTitle(chapter);
@@ -97,11 +109,43 @@ export default function Dashboard() {
     }
   }
 
+  // ---------------- ADVISOR ----------------
+  async function handleAdvisor(chapter: string, priority: string) {
+    try {
+      setAdvisorOpen(true);
+      setAdvisorTitle(`Advisor — ${chapter}`);
+      setAdvisorPriority(priority);
+      setAdvisorContent(null);
+      setAdvisorLoading(true);
+
+      const level =
+        physicsStatus[chapter] ||
+        mathsStatus[chapter] ||
+        chemStatus[chapter] ||
+        "weak";
+
+      const res = await getAdvisorAction({
+        chapter,
+        student_level: level,
+        priority,
+        months_left: monthsLeft,
+      });
+
+      setAdvisorContent(res.message);
+    } catch {
+      setAdvisorContent("Failed to load advisor guidance.");
+    } finally {
+      setAdvisorLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-10">
       <div className="max-w-6xl mx-auto space-y-10">
         <h1 className="text-4xl font-bold tracking-tight">Study Navigator</h1>
-        <p className="text-gray-400">Your personal AI mentor for JEE preparation</p>
+        <p className="text-gray-400">
+          AI guidance for what to study & when — not a learning platform
+        </p>
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* ================= SURVEY ================= */}
@@ -143,18 +187,30 @@ export default function Dashboard() {
               <h2 className="text-2xl font-semibold mb-4">📌 Chapter Priority</h2>
 
               {data.result.roadmap.map((c: any) => (
-                <div key={c.chapter} className="bg-black border border-gray-700 p-3 rounded mb-2">
+                <div
+                  key={c.chapter}
+                  className="bg-black border border-gray-700 p-3 rounded mb-2"
+                >
                   <div className="flex justify-between">
                     <span>{c.chapter}</span>
                     <span className="text-blue-400">{c.priority_label}</span>
                   </div>
 
-                  <button
-                    onClick={() => handleExplain(c.chapter)}
-                    className="mt-2 text-sm text-blue-300 hover:underline"
-                  >
-                    Explain this chapter
-                  </button>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    <button
+                      onClick={() => handleExplain(c.chapter)}
+                      className="text-blue-300 hover:underline"
+                    >
+                      Explain
+                    </button>
+
+                    <button
+                      onClick={() => handleAdvisor(c.chapter, c.priority_label)}
+                      className="text-green-400 hover:underline"
+                    >
+                      Get advisor guidance
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -162,19 +218,48 @@ export default function Dashboard() {
         </div>
       </div>
 
-              {/* ================= ADVISOR ================= */}
-                    {data?.result?.advice?.message && (
-                      <div className="max-w-6xl mx-auto mt-6 bg-blue-950 border border-blue-700 p-4 rounded-xl">
-                        <h3 className="font-semibold mb-2">🧭 Advisor</h3>
-                        <p className="text-gray-200 whitespace-pre-wrap">
-                          {data.result.advice.message}
-                        </p>
-                      </div>
-                    )}
+      {/* ================= ADVISOR MODAL ================= */}
+      {advisorOpen && (
+        <ExplanationModal
+          title={advisorTitle}
+          loading={advisorLoading}
+          content={advisorContent}
+          onClose={() => setAdvisorOpen(false)}
+          footer={
+            <div className="flex gap-4 mt-4">
+              <button
+                onClick={() => {
+                  sendAdvisorFeedback({
+                    chapter: advisorTitle.replace("Advisor — ", ""),
+                    priority: advisorPriority,
+                    action: "done",
+                  });
+                  setAdvisorOpen(false);
+                }}
+                className="bg-green-700 px-4 py-2 rounded hover:bg-green-800"
+              >
+                I did this
+              </button>
 
+              <button
+                onClick={() => {
+                  sendAdvisorFeedback({
+                    chapter: advisorTitle.replace("Advisor — ", ""),
+                    priority: advisorPriority,
+                    action: "skipped",
+                  });
+                  setAdvisorOpen(false);
+                }}
+                className="bg-red-700 px-4 py-2 rounded hover:bg-red-800"
+              >
+                Skipped
+              </button>
+            </div>
+          }
+        />
+      )}
 
-
-      {/* ================= MODAL ================= */}
+      {/* ================= EXPLAIN MODAL ================= */}
       {showModal && (
         <ExplanationModal
           title={modalTitle}
@@ -187,48 +272,37 @@ export default function Dashboard() {
   );
 }
 
-/* ---------------- MODAL COMPONENT ---------------- */
+/* ---------------- MODAL ---------------- */
 
-function ExplanationModal({ title, content, loading, onClose }: any) {
+function ExplanationModal({ title, content, loading, onClose, footer }: any) {
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 w-full max-w-3xl max-h-[85vh] rounded-xl p-6 relative flex flex-col"
+        className="bg-gray-900 w-full max-w-3xl max-h-[85vh] rounded-xl p-6 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex justify-between items-center border-b border-gray-700 pb-3 mb-3">
           <h2 className="text-xl font-semibold">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-xl"
-          >
-            ✖
-          </button>
+          <button onClick={onClose}>✖</button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto pr-2">
-          {loading && (
-            <p className="text-gray-400 animate-pulse">
-              Thinking like a JEE mentor…
-            </p>
-          )}
-
+        <div className="flex-1 overflow-y-auto">
+          {loading && <p className="text-gray-400">Thinking…</p>}
           {!loading && content && (
-            <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
+            <div className="whitespace-pre-wrap text-gray-300">
               {content}
             </div>
           )}
         </div>
+
+        {footer}
       </div>
     </div>
   );
 }
-
 
 /* ---------------- HELPERS ---------------- */
 
@@ -252,15 +326,22 @@ function ChapterBlock({ title, chapters, status, setStatus }: any) {
       <h3 className="text-lg font-semibold mt-2 mb-2">{title}</h3>
       <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
         {chapters.map((ch: string) => (
-          <div key={ch} className="flex justify-between items-center bg-black border border-gray-700 p-2 rounded">
+          <div
+            key={ch}
+            className="flex justify-between items-center bg-black border border-gray-700 p-2 rounded"
+          >
             <span className="text-sm">{ch}</span>
             <select
               value={status[ch]}
-              onChange={(e) => setStatus({ ...status, [ch]: e.target.value })}
+              onChange={(e) =>
+                setStatus({ ...status, [ch]: e.target.value })
+              }
               className="bg-gray-800 text-sm p-1 rounded"
             >
               {levelOptions.map((lvl: string) => (
-                <option key={lvl} value={lvl}>{lvl}</option>
+                <option key={lvl} value={lvl}>
+                  {lvl}
+                </option>
               ))}
             </select>
           </div>
@@ -269,7 +350,3 @@ function ChapterBlock({ title, chapters, status, setStatus }: any) {
     </div>
   );
 }
-
-<h1 className="text-red-500 text-sm">
-  DEPLOY TEST – CLUTTER REMOVED v2
-</h1>
