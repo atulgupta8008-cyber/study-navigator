@@ -215,6 +215,16 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {data?.result?.weekly_plan && (
+                <div className="bg-gray-900 rounded-xl p-6 mt-6">
+                  <h2 className="text-2xl font-semibold mb-4">📅 This Week’s Focus</h2>
+
+                  <Section title="🔥 Primary Focus" items={data.result.weekly_plan.primary} />
+                  <Section title="⚡ Secondary Focus" items={data.result.weekly_plan.secondary} />
+                  <Section title="🧊 Optional" items={data.result.weekly_plan.optional} />
+                </div>
+              )}
+
         </div>
       </div>
 
@@ -350,3 +360,23 @@ function ChapterBlock({ title, chapters, status, setStatus }: any) {
     </div>
   );
 }
+
+function Section({ title, items }: any) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="mb-4">
+      <h3 className="font-semibold mb-2">{title}</h3>
+      {items.map((i: any) => (
+        <div
+          key={i.chapter}
+          className="bg-black border border-gray-700 p-2 rounded mb-2 text-sm"
+        >
+          <span className="font-medium">{i.chapter}</span>
+          <div className="text-gray-400">{i.reason}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+

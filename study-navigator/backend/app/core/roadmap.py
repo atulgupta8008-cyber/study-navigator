@@ -2,6 +2,7 @@ from app.core.priority import calculate_priority, classify_priority
 from app.core.planner import generate_daily_plan
 from app.core.analytics import generate_analytics
 from app.services.advisor_ai import get_next_action
+from app.core.weekly_roadmap import generate_weekly_roadmap
 
 
 def generate_roadmap(survey: dict, chapters: list, context: dict):
@@ -41,8 +42,12 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
     timetable = generate_daily_plan(survey)
     analytics = generate_analytics(roadmap)
 
+
+    weekly=generate_weekly_roadmap(roadmap, survey)
+
     return {
         "roadmap": roadmap,
+        "weekly_plan": weekly,
         "daily_plan": timetable,
         "analytics": analytics,
         "advice": advice

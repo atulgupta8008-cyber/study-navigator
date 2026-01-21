@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from app.services.advisor_ai import get_next_action
 from app.db import SessionLocal
 from app.models.advisor_feedback import AdvisorFeedback
+from app.core.signal_updater import update_chapter_signal
+
 
 router = APIRouter(prefix="/advisor", tags=["Advisor"])
 
@@ -45,21 +47,21 @@ def next_action(req: AdvisorRequest):
 @router.post("/feedback")
 def submit_feedback(req: FeedbackRequest):
     db = SessionLocal()
-    try:
-        feedback = AdvisorFeedback(
-            chapter=req.chapter,
-            priority=req.priority,
-            action=req.action
-        )
 
-        db.add(feedback)
-        db.commit()
-        return {"status": "ok"}
+    update_chapter_signal(
+        db=db,
+        chapter=req.chapter,
+        action=req.action
+    )
 
-    except Exception as e:
-        db.rollback()
-        raise e
+    feedback = AdvisorFeedback(
+        chapter=req.chapter,
+        action=req.action
+    )
 
-    finally:
-        db.close()
+    db.add(feedback)
+    db.commit()
+
+    return {"status": "ok"}
+
 
