@@ -49,6 +49,5 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
         "roadmap": roadmap,
         "weekly_plan": weekly,
         "daily_plan": timetable,
-        "analytics": analytics,
         "advice": advice
     }

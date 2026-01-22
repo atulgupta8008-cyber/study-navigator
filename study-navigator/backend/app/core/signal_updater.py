@@ -21,7 +21,7 @@ def update_chapter_signal(
         signal = ChapterSignal(chapter=chapter)
         db.add(signal)
 
-        signal.effort_score = (signal.effort_score or 0) + deltas["effort_delta"]
+        signal.effort_score = (signal.effort_score or 0) + 1
         signal.resistance_score = (signal.resistance_score or 0) + deltas["resistance_delta"]
 
         signal.trust_score = max(
