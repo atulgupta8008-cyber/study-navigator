@@ -215,15 +215,36 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {/* ================= WEEKLY PLAN ================= */}
           {data?.result?.weekly_plan && (
-                <div className="bg-gray-900 rounded-xl p-6 mt-6">
-                  <h2 className="text-2xl font-semibold mb-4">📅 This Week’s Focus</h2>
+            <div className="bg-gray-900 rounded-xl p-6 mt-6">
+              <h2 className="text-2xl font-semibold mb-4">
+                🗓️ Weekly Study Plan
+              </h2>
 
-                  <Section title="🔥 Primary Focus" items={data.result.weekly_plan.primary} />
-                  <Section title="⚡ Secondary Focus" items={data.result.weekly_plan.secondary} />
-                  <Section title="🧊 Optional" items={data.result.weekly_plan.optional} />
-                </div>
-              )}
+              <div className="space-y-3">
+                {data.result.weekly_plan.map((item: any) => (
+                  <div
+                    key={item.chapter}
+                    className="flex justify-between items-center bg-black border border-gray-700 px-4 py-3 rounded"
+                  >
+                    <div>
+                      <div className="text-sm font-medium">{item.chapter}</div>
+                      <div className="text-xs text-gray-400">
+                        {item.reason}
+                      </div>
+                    </div>
+
+                    <div className="text-blue-400 font-semibold">
+                      {Math.round(item.weekly_minutes / 60)} hrs / week
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+
 
         </div>
       </div>
