@@ -89,9 +89,9 @@ def calculate_priority(chapter_data: dict, context: dict):
 
 
 def classify_priority(score: float):
-    if score >= 75:
+    if score >= 60:
         return "must_do"
-    elif score >= 55:
+    elif score >= 50:
         return "should_do"
     elif score >= 35:
         return "optional"

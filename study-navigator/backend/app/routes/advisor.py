@@ -4,7 +4,8 @@ from app.services.advisor_ai import get_next_action
 from app.db import SessionLocal
 from app.models.advisor_feedback import AdvisorFeedback
 from app.core.signal_updater import update_chapter_signal
-
+from app.core.adaptive_engine import decide_advice_type
+from app.models.chapter_signal import ChapterSignal
 
 router = APIRouter(prefix="/advisor", tags=["Advisor"])
 
@@ -20,28 +21,35 @@ class AdvisorRequest(BaseModel):
 
 class FeedbackRequest(BaseModel):
     chapter: str
-    priority: str
-    action: str  # "followed" | "skipped"
+    action: str  # "done" | "skipped"
 
 
 # -------- ROUTES --------
 
 @router.post("/next-action")
 def next_action(req: AdvisorRequest):
-    """
-    Step 3:
-    - Advisor tone is AUTO decided
-    - Based on previous feedback
-    """
+    db = SessionLocal()
+    signal = (
+        db.query(ChapterSignal)
+        .filter(ChapterSignal.chapter == req.chapter)
+        .first()
+    )
+
+    advice_type = decide_advice_type(signal) if signal else "new"
 
     advice = get_next_action(
         chapter=req.chapter,
         student_level=req.student_level,
         priority=req.priority,
-        months_left=req.months_left
+        months_left=req.months_left,
+        advice_type=advice_type
     )
 
-    return advice
+
+    return {
+        "message": advice,
+        "tone": advice_type
+    }
 
 
 @router.post("/feedback")
@@ -63,5 +71,3 @@ def submit_feedback(req: FeedbackRequest):
     db.commit()
 
     return {"status": "ok"}
-
-

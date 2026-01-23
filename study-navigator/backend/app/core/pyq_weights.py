@@ -23,7 +23,7 @@ PYQ_WEIGHTS_MATHS = {
     "Functions": 8,
     "Limits & Continuity": 9,
     "Differentiation": 9,
-    "Integration": 10,
+    "Integration": 9,
     "Differential Equations": 6,
     "Matrices & Determinants": 9,
     "Vector Algebra": 8,

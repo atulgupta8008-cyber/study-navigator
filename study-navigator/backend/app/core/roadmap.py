@@ -2,7 +2,8 @@ from app.core.priority import calculate_priority, classify_priority
 from app.core.planner import generate_daily_plan
 from app.core.analytics import generate_analytics
 from app.services.advisor_ai import get_next_action
-from app.core.weekly_roadmap import generate_weekly_roadmap
+from app.core.weekly_planner import generate_weekly_plan
+from app.db import SessionLocal
 
 
 def generate_roadmap(survey: dict, chapters: list, context: dict):
@@ -22,6 +23,15 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
 
     roadmap.sort(key=lambda x: x["priority_score"], reverse=True)
 
+    db = SessionLocal()
+
+    # ---------------- WEEKLY PLAN (SINGLE SOURCE) ----------------
+    weekly_plan = generate_weekly_plan(
+        db=db,
+        roadmap=roadmap,
+        total_hours_per_week=survey["daily_self_study_hours"] * 7
+    )
+
     # ---------------- ADVISOR (AUTO) ----------------
     top = roadmap[0]
 
@@ -38,16 +48,14 @@ def generate_roadmap(survey: dict, chapters: list, context: dict):
         "message": advice_message
     }
 
-    # ---------------- PLANS & ANALYTICS ----------------
-    timetable = generate_daily_plan(survey)
+    # ---------------- DAILY PLAN & ANALYTICS ----------------
+    daily_plan = generate_daily_plan(survey)
     analytics = generate_analytics(roadmap)
-
-
-    weekly=generate_weekly_roadmap(roadmap, survey)
 
     return {
         "roadmap": roadmap,
-        "weekly_plan": weekly,
-        "daily_plan": timetable,
-        "advice": advice
+        "weekly_plan": weekly_plan,
+        "daily_plan": daily_plan,
+        "advice": advice,
+        "analytics": analytics
     }
