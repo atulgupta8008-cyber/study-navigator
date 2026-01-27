@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   generateRoadmap,
   explainChapter,
@@ -46,6 +46,58 @@ export default function Dashboard() {
   const [advisorContent, setAdvisorContent] = useState<string | null>(null);
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [advisorPriority, setAdvisorPriority] = useState("");
+
+
+  useEffect(() => {
+    const saved = localStorage.getItem("study_navigator_survey");
+    if (!saved) return;
+
+    try {
+      const survey = JSON.parse(saved);
+
+      if (survey.daily_self_study_hours)
+        setHours(survey.daily_self_study_hours);
+
+      if (survey.burnout_level)
+        setBurnout(survey.burnout_level);
+
+      if (survey.months_left)
+        setMonthsLeft(survey.months_left);
+    } catch {
+      // ignore corrupted storage
+    }
+  }, []);
+
+  useEffect(() => {
+  const payload = {
+    physics: physicsStatus,
+    maths: mathsStatus,
+    chemistry: chemStatus,
+  };
+
+  localStorage.setItem(
+    "study_navigator_chapters",
+    JSON.stringify(payload)
+  );
+}, [physicsStatus, mathsStatus, chemStatus]);
+
+useEffect(() => {
+  const saved = localStorage.getItem("study_navigator_chapters");
+  if (!saved) return;
+
+  try {
+    const data = JSON.parse(saved);
+
+    if (data.physics) setPhysicsStatus(data.physics);
+    if (data.maths) setMathsStatus(data.maths);
+    if (data.chemistry) setChemStatus(data.chemistry);
+  } catch {
+    // ignore corrupted data
+  }
+}, []);
+
+
+
 
   // ---------------- GENERATE ROADMAP ----------------
   async function handleGenerate() {
