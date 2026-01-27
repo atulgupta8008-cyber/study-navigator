@@ -1,41 +1,45 @@
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
 from app.models.chapter_signal import ChapterSignal
 
 
-def decide_advice_type(db: Session, chapter: str) -> str:
+# -------------------------------
+# Advisor tone decision
+# -------------------------------
+def decide_advice_type(signal: ChapterSignal | None) -> str:
     """
-    Decide advisor tone automatically based on past behavior
+    Decide advisor tone SAFELY.
+
+    Rules:
+    - No signal → new
+    - First interaction → new
+    - Repeated resistance → warning
+    - High trust → followup
     """
 
-    signal = (
-        db.query(ChapterSignal)
-        .filter(ChapterSignal.chapter == chapter)
-        .first()
-    )
-
-    # No history → normal guidance
-    if not signal:
-        return "new"
-    
     if signal is None:
-        return "normal"
+        return "new"
 
-    # Strong resistance → warning
+    # First interaction safeguard
+    if signal.effort_score == 0 and signal.resistance_score == 0:
+        return "new"
+
     if signal.resistance_score >= 6:
         return "warning"
 
-    # Low trust → strict follow-up
-    if signal.trust_score <= 35:
+    if signal.trust_score >= 70:
         return "followup"
 
-    # Recently active & cooperative → softer guidance
-    if signal.trust_score >= 60:
-        return "new"
+    return "new"
 
-    return "followup"
 
+# -------------------------------
+# Feedback interpretation
+# -------------------------------
 def interpret_feedback(action: str):
+    """
+    Translate user action into signal deltas.
+    This is used by signal_updater.py
+    """
+
     if action == "done":
         return {
             "effort_delta": 2,
@@ -55,11 +59,3 @@ def interpret_feedback(action: str):
         "resistance_delta": 0,
         "trust_delta": 0,
     }
-
-
-def decide_advice_type(signal):
-    if signal.resistance_score >= 6:
-        return "warning"
-    if signal.trust_score >= 70:
-        return "followup"
-    return "new"

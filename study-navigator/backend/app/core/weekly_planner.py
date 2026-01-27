@@ -1,47 +1,82 @@
-from app.models.chapter_signal import ChapterSignal
+from collections import defaultdict
+from math import floor
+
+SESSION_MINUTES = 90
+MAX_WEEKLY_SESSIONS = 12
+
 
 def generate_weekly_plan(db, roadmap, total_hours_per_week: int):
-    """
-    roadmap: list of chapters with priority_label
-    """
-
-    total_minutes = total_hours_per_week * 60
-
-    signals = {
-        s.chapter: s
-        for s in db.query(ChapterSignal).all()
+    PRIORITY_WEIGHTS = {
+        "must_do": 3.0,
+        "should_do": 2.0,
+        "optional": 1.0,
+        "skip_if_short_time": 0.0,
     }
 
-    weights = []
-    for item in roadmap:
-        chapter = item["chapter"]
-        priority = item["priority_label"]
+    # ----------------------------------
+    # 1️⃣ Select chapters for THIS week
+    # ----------------------------------
+    candidates = [
+        r for r in roadmap
+        if r["priority_label"] in ("must_do", "should_do")
+    ]
 
-        signal = signals.get(chapter)
+    if len(candidates) < 5:
+        candidates += [
+            r for r in roadmap
+            if r["priority_label"] == "optional"
+        ]
 
-        weight = 1.0
+    # HARD SAFETY: cap number of chapters
+    candidates = candidates[:MAX_WEEKLY_SESSIONS]
 
-        if priority == "Immediate Action Required":
-            weight += 1.5
-        elif priority == "High":
-            weight += 1.0
+    # ----------------------------------
+    # 2️⃣ Weight calculation
+    # ----------------------------------
+    weighted = []
+    total_weight = 0.0
 
-        if signal:
-            weight += (signal.resistance_score or 0) * 0.05
-            weight -= (signal.trust_score or 50) * 0.01
+    for r in candidates:
+        w = PRIORITY_WEIGHTS[r["priority_label"]]
+        weighted.append({
+            "chapter": r["chapter"],
+            "weight": w,
+        })
+        total_weight += w
 
-        weights.append((chapter, max(weight, 0.3)))
+    # ----------------------------------
+    # 3️⃣ Allocate sessions (ALLOW ZERO)
+    # ----------------------------------
+    chapter_sessions = defaultdict(int)
 
-    weight_sum = sum(w for _, w in weights)
+    for item in weighted:
+        fraction = item["weight"] / total_weight
+        sessions = floor(fraction * MAX_WEEKLY_SESSIONS)
+        chapter_sessions[item["chapter"]] = sessions
 
+    # Ensure at least ONE must_do chapter exists
+    if sum(chapter_sessions.values()) == 0:
+        top = weighted[0]["chapter"]
+        chapter_sessions[top] = 1
+
+    # ----------------------------------
+    # 4️⃣ Aggregate into weekly minutes
+    # ----------------------------------
     weekly_plan = []
-    for chapter, weight in weights:
-        minutes = int((weight / weight_sum) * total_minutes)
+
+    for ch, sessions in chapter_sessions.items():
+        if sessions == 0:
+            continue
 
         weekly_plan.append({
-            "chapter": chapter,
-            "weekly_minutes": minutes,
-            "reason": "Adaptive based on priority and feedback"
+            "chapter": ch,
+            "weekly_minutes": sessions * SESSION_MINUTES,
+            "reason": f"{sessions} focused study session(s)",
         })
+
+    weekly_plan.sort(
+        key=lambda x: x["weekly_minutes"],
+        reverse=True
+    )
 
     return weekly_plan
